@@ -6,6 +6,9 @@ skip_local_validator = true
 resolution = true
 skip-lint = false
 
+[programs.devnet]
+fairticket_program = "6xrY8GHUgWPZrjkRdNGTrD5Cp55icUN3L4Fot7MLiujs"
+
 [programs.localnet]
 fairticket_program = "6xrY8GHUgWPZrjkRdNGTrD5Cp55icUN3L4Fot7MLiujs"
 
