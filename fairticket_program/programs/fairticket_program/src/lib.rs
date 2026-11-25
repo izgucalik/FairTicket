@@ -41,6 +41,10 @@ pub mod fairticket_program {
         crate::instructions::list_ticket::handle_list_ticket(ctx, price)
     }
 
+    pub fn buy_ticket(ctx: Context<BuyTicket>) -> Result<()> {
+        crate::instructions::buy_ticket::handle_buy_ticket(ctx)
+    }
+
     pub fn cancel_listing(ctx: Context<CancelListing>) -> Result<()> {
         crate::instructions::cancel_listing::handle_cancel_listing(ctx)
     }

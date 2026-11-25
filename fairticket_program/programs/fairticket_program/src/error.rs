@@ -22,4 +22,10 @@ pub enum ErrorCode {
     TicketUsed,
     #[msg("Bilet bu etkinlige ait degil")]
     EventMismatch,
+    #[msg("Kendi biletinizi satin alamazsiniz")]
+    CannotBuyOwnTicket,
+    #[msg("Listeleme gecersiz: bilet artik saticida degil")]
+    ListingStale,
+    #[msg("Hesaplama tasmasi")]
+    MathOverflow,
 }
