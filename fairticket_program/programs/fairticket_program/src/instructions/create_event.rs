@@ -24,6 +24,7 @@ pub fn handle_create_event(
     face_price: u64,
     max_price_bps: u16,
     royalty_bps: u16,
+    payment_mint: Pubkey,
 ) -> Result<()> {
     require!(face_price > 0, ErrorCode::InvalidFacePrice);
     require!(max_price_bps >= BPS_DENOMINATOR, ErrorCode::InvalidMaxPriceBps);
@@ -31,6 +32,7 @@ pub fn handle_create_event(
 
     let ev = &mut ctx.accounts.event;
     ev.authority = ctx.accounts.authority.key();
+    ev.payment_mint = payment_mint;
     ev.event_id = event_id;
     ev.face_price = face_price;
     ev.max_price_bps = max_price_bps;

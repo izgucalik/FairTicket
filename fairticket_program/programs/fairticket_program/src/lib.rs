@@ -21,6 +21,7 @@ pub mod fairticket_program {
         face_price: u64,
         max_price_bps: u16,
         royalty_bps: u16,
+        payment_mint: Pubkey,
     ) -> Result<()> {
         crate::instructions::create_event::handle_create_event(
             ctx,
@@ -28,6 +29,7 @@ pub mod fairticket_program {
             face_price,
             max_price_bps,
             royalty_bps,
+            payment_mint,
         )
     }
 

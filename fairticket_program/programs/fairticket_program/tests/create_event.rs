@@ -52,6 +52,7 @@ fn create_event(
             face_price,
             max_price_bps,
             royalty_bps,
+            payment_mint: Pubkey::new_from_array([7u8; 32]),
         }
         .data(),
         fairticket_program::accounts::CreateEvent {
@@ -129,4 +130,15 @@ fn farkli_organizator_ayni_event_id_kullanabilir() {
     create_event(&mut svm, &org1, 1, 100_000_000, 11_000, 750).unwrap();
     create_event(&mut svm, &org2, 1, 50_000_000, 12_000, 500).unwrap();
     assert_ne!(event_pda(&org1.pubkey(), 1), event_pda(&org2.pubkey(), 1));
+}
+
+#[test]
+fn odeme_mint_kaydedilir() {
+    let (mut svm, org) = setup();
+    create_event(&mut svm, &org, 1, 100_000_000, 11_000, 750).unwrap();
+
+    let acc = svm.get_account(&event_pda(&org.pubkey(), 1)).unwrap();
+    let mut data: &[u8] = &acc.data;
+    let ev = fairticket_program::state::Event::try_deserialize(&mut data).unwrap();
+    assert_eq!(ev.payment_mint, Pubkey::new_from_array([7u8; 32]));
 }

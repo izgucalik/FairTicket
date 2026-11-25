@@ -4,6 +4,8 @@ use anchor_lang::prelude::*;
 #[derive(InitSpace)]
 pub struct Event {
     pub authority: Pubkey,
+    // Satislarda gecerli tek odeme token'i (Devnet USDC)
+    pub payment_mint: Pubkey,
     pub event_id: u64,
     // Tutarlar en kucuk birim, tam sayi (USDC icin 6 basamak)
     pub face_price: u64,

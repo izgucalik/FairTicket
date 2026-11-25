@@ -77,6 +77,7 @@ fn create_event(svm: &mut LiteSVM, org: &Keypair, event_id: u64) {
             face_price: 100_000_000,
             max_price_bps: 11_000,
             royalty_bps: 750,
+            payment_mint: Pubkey::new_from_array([7u8; 32]),
         }
         .data(),
         fairticket_program::accounts::CreateEvent {
