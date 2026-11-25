@@ -9,6 +9,7 @@ import { eventsRoutes } from "./routes/events";
 import { ticketsRoutes } from "./routes/tickets";
 import { qrRoutes } from "./routes/qr";
 import { gateRoutes } from "./routes/gate";
+import { marketplaceRoutes } from "./routes/marketplace";
 
 const app = Fastify({ logger: true });
 
@@ -34,6 +35,7 @@ await app.register(eventsRoutes);
 await app.register(ticketsRoutes);
 await app.register(qrRoutes);
 await app.register(gateRoutes);
+await app.register(marketplaceRoutes);
 
 const port = Number(process.env.PORT ?? 3001);
 await app.listen({ port, host: "0.0.0.0" });
