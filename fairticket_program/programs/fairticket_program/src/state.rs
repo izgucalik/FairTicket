@@ -12,3 +12,13 @@ pub struct Event {
     pub ticket_count: u32,
     pub bump: u8,
 }
+
+#[account]
+#[derive(InitSpace)]
+pub struct Ticket {
+    pub event: Pubkey,
+    pub owner: Pubkey,
+    pub index: u32,
+    pub used: bool,
+    pub bump: u8,
+}

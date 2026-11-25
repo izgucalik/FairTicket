@@ -8,4 +8,8 @@ pub enum ErrorCode {
     InvalidMaxPriceBps,
     #[msg("Telif orani 10000 bps'i gecemez")]
     InvalidRoyaltyBps,
+    #[msg("Bu islemi sadece etkinligin organizatoru yapabilir")]
+    Unauthorized,
+    #[msg("Bilet sayaci tasti")]
+    TicketCountOverflow,
 }

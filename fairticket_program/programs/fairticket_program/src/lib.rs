@@ -30,4 +30,8 @@ pub mod fairticket_program {
             royalty_bps,
         )
     }
+
+    pub fn mint_ticket(ctx: Context<MintTicket>, owner: Pubkey) -> Result<()> {
+        crate::instructions::mint_ticket::handle_mint_ticket(ctx, owner)
+    }
 }
