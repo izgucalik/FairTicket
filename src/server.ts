@@ -7,6 +7,7 @@ import { ApiError } from "./errors";
 import { authRoutes } from "./routes/auth";
 import { eventsRoutes } from "./routes/events";
 import { ticketsRoutes } from "./routes/tickets";
+import { qrRoutes } from "./routes/qr";
 
 const app = Fastify({ logger: true });
 
@@ -30,6 +31,7 @@ app.get("/health", async () => ({ ok: true }));
 await app.register(authRoutes);
 await app.register(eventsRoutes);
 await app.register(ticketsRoutes);
+await app.register(qrRoutes);
 
 const port = Number(process.env.PORT ?? 3001);
 await app.listen({ port, host: "0.0.0.0" });
