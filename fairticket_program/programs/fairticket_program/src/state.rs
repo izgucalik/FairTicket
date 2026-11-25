@@ -22,3 +22,12 @@ pub struct Ticket {
     pub used: bool,
     pub bump: u8,
 }
+
+#[account]
+#[derive(InitSpace)]
+pub struct Listing {
+    pub ticket: Pubkey,
+    pub seller: Pubkey,
+    pub price: u64,
+    pub bump: u8,
+}
