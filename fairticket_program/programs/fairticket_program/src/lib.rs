@@ -45,6 +45,10 @@ pub mod fairticket_program {
         crate::instructions::buy_ticket::handle_buy_ticket(ctx)
     }
 
+    pub fn mark_used(ctx: Context<MarkUsed>) -> Result<()> {
+        crate::instructions::mark_used::handle_mark_used(ctx)
+    }
+
     pub fn cancel_listing(ctx: Context<CancelListing>) -> Result<()> {
         crate::instructions::cancel_listing::handle_cancel_listing(ctx)
     }
