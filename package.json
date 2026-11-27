@@ -10,7 +10,7 @@
     "debug-db": "tsx src/debug-db.ts",
     "typecheck": "tsc --noEmit",
     "demo": "node chain-api/server.mjs",
-    "chain-api": "node chain-api/server.mjs"
+    "chain-api": "node --env-file=.env chain-api/server.mjs"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1",
