@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.99.0/lib/index.iife.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <style>
 /* Sabit koyu tema: sistem temasından bağımsız. */
 :root{
@@ -120,6 +121,13 @@ input:focus,button:focus-visible{outline:2px solid var(--mint);outline-offset:1p
 .verdict.bad{background:var(--red-bg);color:var(--red);font-size:13px;line-height:1.45}
 .verdict small{display:block;font-weight:500;font-size:12px;margin-top:4px;opacity:.9}
 .err{font-size:12px;color:var(--red);margin-top:6px}
+.scanbox{position:relative;background:#000;border-radius:14px;overflow:hidden;aspect-ratio:4/3;max-width:520px;margin:0 auto 12px}
+.scanbox video{width:100%;height:100%;object-fit:cover;display:block}
+.scanbox .frame{position:absolute;inset:18%;border:2px dashed rgba(255,255,255,.6);border-radius:14px;pointer-events:none}
+.gate-v{max-width:520px;margin:0 auto}
+.gate-v .verdict{padding:26px 14px;font-size:26px}
+.gate-v .verdict.bad{font-size:20px}
+.gate-v .verdict.idle{background:var(--card2);color:var(--mut);font-size:15px;font-weight:600}
 .section-t{font-family:var(--head);font-size:15px;margin:18px 0 10px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;font-size:12px}
 
 /* Modal + toast */
@@ -162,6 +170,7 @@ input:focus,button:focus-visible{outline:2px solid var(--mint);outline-offset:1p
       <button class="tab on" data-tab="events">Etkinlikler</button>
       <button class="tab" data-tab="market">İkincil Pazar<span class="cnt" id="cnt-market">0</span></button>
       <button class="tab" data-tab="mine">Biletlerim<span class="cnt" id="cnt-mine">0</span></button>
+      <button class="tab" data-tab="gate">Görevli</button>
       <button class="tab" data-tab="org" id="tab-org" hidden>Organizatör</button>
     </nav>
     <div class="right">
@@ -184,16 +193,24 @@ input:focus,button:focus-visible{outline:2px solid var(--mint);outline-offset:1p
     <div class="card" id="listings"></div>
   </section>
 
+  <section class="page" id="page-gate">
+    <div class="head"><div><h1>Görevli</h1><p>Telefon kamerasıyla bilet QR kodunu okutun. İlk okutmada yeşil, tekrar okutmada kırmızı sonuç görünür.</p></div></div>
+    <div class="scanbox"><video id="scan-video" playsinline muted></video><div class="frame"></div></div>
+    <canvas id="scan-canvas" hidden></canvas>
+    <div class="gate-v" id="gate-result"><div class="verdict idle">Kamera başlatılıyor…</div></div>
+    <p style="text-align:center;margin-top:12px"><button class="btn ghost sm" id="scan-restart" type="button">Kamerayı yeniden başlat</button></p>
+  </section>
+
   <section class="page" id="page-org">
     <div class="head"><div><h1>Organizatör</h1><p>Etkinlik oluşturur ve bilet basar. İşlemleri sunucudaki organizatör anahtarı imzalar; biletler bağlı cüzdana yazılır.</p></div></div>
     <form class="card" id="org-form" autocomplete="off">
       <div class="sellrow">
         <label>Etkinlik adı<input name="name" required maxlength="80"></label>
         <label>Nominal fiyat (USDC)<input name="face" type="number" step="0.01" min="0.01" required value="50"></label>
-        <label>Azami fiyat (USDC)<input name="max" type="number" step="0.01" min="0.01" required value="60"></label>
+        <label>Azami fiyat (USDC) · nominal × 1,2<input name="max" type="number" readonly tabindex="-1" value="60"></label>
       </div>
       <div class="sellrow" style="margin-top:10px">
-        <label>Telif (%)<input name="roy" type="number" step="0.1" min="0" max="100" required value="5"></label>
+        <label>Telif (%) · sabit<input name="roy" type="number" readonly tabindex="-1" value="5"></label>
         <label>Kontenjan<input name="supply" type="number" step="1" min="1" required value="100"></label>
         <label>Basılacak bilet (1–10)<input name="count" type="number" step="1" min="1" max="10" required value="1"></label>
       </div>

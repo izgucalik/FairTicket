@@ -232,7 +232,7 @@ app.get("/tickets", send(async ({ query }) => {
         id: t.id, event: store.events[t.eventId].name, owner: c.owner.toBase58(), status,
         face: usdc(store.events[t.eventId].faceBase), max_price: usdc(capBase(store.events[t.eventId])),
       });
-    } catch { /* zincirde henüz yoksa atla */ }
+    } catch (e) { if (isRateLimit(e)) throw e; /* zincirde henüz yoksa atla */ }
   }));
   save();
   return { tickets: out.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true })) };
@@ -478,6 +478,13 @@ app.post("/tx/buy/prepare", send(async ({ body }) => {
   });
 }));
 
+const WALLET_EXTRA_PROGRAMS = new Set([
+  "ComputeBudget111111111111111111111111111111",
+  "L2TExMFKdjpN9kozasaurPirfHy9P8sbXoAN1qA3S95",
+]);
+const coreInstructions = (tx) => tx.instructions.filter((i) => !WALLET_EXTRA_PROGRAMS.has(i.programId.toBase58()));
+const dumpIxs = (tx) => tx.instructions.map((i) => `${i.programId.toBase58().slice(0, 8)}…(${i.data.length}b)`).join(", ");
+
 // POST /tx/submit — { signed, kind: "list"|"buy", ticket_id|listing_id, seller|buyer, price? }
 // Cüzdanın imzaladığı işlemi zincire gönderir, onaylanınca yerel durumu günceller.
 app.post("/tx/submit", send(async ({ body }) => {
@@ -488,9 +495,11 @@ app.post("/tx/submit", send(async ({ body }) => {
   const disc = (name) => Buffer.from(IDL.instructions.find((i) => i.name === name).discriminator);
   const expectName = body.kind === "list" ? "list_ticket" : body.kind === "buy" ? "buy_ticket" : body.kind === "primary" ? null : null;
   if (expectName) {
-    const ok = tx.instructions.length === 1
-      && tx.instructions[0].programId.equals(PROGRAM_ID)
-      && Buffer.from(tx.instructions[0].data.subarray(0, 8)).equals(disc(expectName));
+    const core = coreInstructions(tx);
+    const ok = core.length === 1
+      && core[0].programId.equals(PROGRAM_ID)
+      && Buffer.from(core[0].data.subarray(0, 8)).equals(disc(expectName));
+    if (!ok) console.log("unexpected_tx:", dumpIxs(tx));
     if (!ok) throw new ApiErr(422, "unexpected_tx", `İşlem ${expectName} talimatıyla eşleşmiyor`);
   }
 
@@ -499,10 +508,12 @@ app.post("/tx/submit", send(async ({ body }) => {
     const ev = store.events[body.event_id];
     if (!ev) throw new ApiErr(404, "NOT_FOUND", "Etkinlik bulunamadı");
     const buyer = parsePubkey(body.buyer, "buyer");
-    const ix = tx.instructions[0];
+    const core = coreInstructions(tx);
+    const ix = core[0];
     const orgAta = getAssociatedTokenAddressSync(MINT, organizer.publicKey);
-    const ok = tx.instructions.length === 1 && ix.programId.equals(TOKEN_PROGRAM_ID) && ix.data[0] === 3
+    const ok = core.length === 1 && ix.programId.equals(TOKEN_PROGRAM_ID) && ix.data[0] === 3
       && ix.data.readBigUInt64LE(1) === BigInt(ev.faceBase) && ix.keys[1].pubkey.equals(orgAta) && tx.feePayer?.equals(buyer);
+    if (!ok) console.log("payment_mismatch:", dumpIxs(tx), "| feePayer:", tx.feePayer?.toBase58(), "| beklenen alıcı:", buyer.toBase58());
     if (!ok) throw new ApiErr(422, "payment_mismatch", "Ödeme işlemi beklenen tutar ve hedefle eşleşmiyor");
   }
 

@@ -1,8 +1,8 @@
 {
   "seq": {
     "e": 9,
-    "t": 17,
-    "l": 9
+    "t": 18,
+    "l": 10
   },
   "qrSecret": "824e26c8ab945bfea0e31764cd4856b56d51644987d376ce5807717bb1cb9407",
   "events": {
@@ -81,7 +81,7 @@
       "maxBps": 12000,
       "royaltyBps": 1000,
       "supply": 300,
-      "ticketCount": 8
+      "ticketCount": 9
     },
     "e8": {
       "id": "e8",
@@ -208,6 +208,12 @@
       "eventId": "e9",
       "index": 0,
       "used": false
+    },
+    "t18": {
+      "id": "t18",
+      "eventId": "e7",
+      "index": 8,
+      "used": true
     }
   },
   "listings": {
@@ -223,7 +229,7 @@
       "ticketId": "t4",
       "seller": "EFsa8wH6pUbLG2o6E7LmbvTRLUUmRSqcZECd5J1Uuezb",
       "price": "58000000",
-      "status": "active"
+      "status": "sold"
     },
     "l3": {
       "id": "l3",
@@ -272,6 +278,13 @@
       "ticketId": "t12",
       "seller": "26ohjvgxCXBY5i9fQvZUC6Ukgdd2JEzvw1rRmu8zWdB7",
       "price": "52500000",
+      "status": "active"
+    },
+    "l10": {
+      "id": "l10",
+      "ticketId": "t4",
+      "seller": "8TjgyxBVg5j7qMfdgjaj6owbZsvR9vLsXuirifsWJj5a",
+      "price": "55000000",
       "status": "active"
     }
   },
@@ -322,6 +335,30 @@
       "ticketId": "t16",
       "wallet": "26ohjvgxCXBY5i9fQvZUC6Ukgdd2JEzvw1rRmu8zWdB7",
       "expires": 1795715033,
+      "used": true
+    },
+    "8e5586d94df30e5796b047bc3fffa399": {
+      "ticketId": "t14",
+      "wallet": "26ohjvgxCXBY5i9fQvZUC6Ukgdd2JEzvw1rRmu8zWdB7",
+      "expires": 1795768434,
+      "used": false
+    },
+    "937233dca9c0422653f3a90e3ffacb72": {
+      "ticketId": "t14",
+      "wallet": "26ohjvgxCXBY5i9fQvZUC6Ukgdd2JEzvw1rRmu8zWdB7",
+      "expires": 1795768434,
+      "used": false
+    },
+    "7693e058ea37e9e975670187661a5f1f": {
+      "ticketId": "t18",
+      "wallet": "8TjgyxBVg5j7qMfdgjaj6owbZsvR9vLsXuirifsWJj5a",
+      "expires": 1795769468,
+      "used": false
+    },
+    "8c90ad74be77014018ca5ce0cbb94189": {
+      "ticketId": "t18",
+      "wallet": "8TjgyxBVg5j7qMfdgjaj6owbZsvR9vLsXuirifsWJj5a",
+      "expires": 1795769484,
       "used": true
     }
   },

@@ -6,7 +6,7 @@ const fmt = (n) => Number(n).toLocaleString("tr-TR", { maximumFractionDigits: 2 
 
 // Mesajlar: arayüzde ve jüri için okunabilir Türkçe karşılıklar
 const MSG = {
-  price_above_cap: (e) => `Fiyat tavanı ${fmt(e.max_price)} USDC aşıldı`,
+  price_above_cap: (e) => `Fiyat tavanı ${fmt(e.face != null ? effMax(e.max_price, e.face) : e.max_price)} USDC aşıldı`,
   not_owner: "Bu bilet bu cüzdana ait değil",
   ticket_used: "Bu bilet daha önce kullanıldı",
   ticket_listed: "Bilet satışta; giriş kodu üretilemez",
@@ -24,6 +24,10 @@ const MSG = {
   user_rejected: "Cüzdan işlemi reddetti",
 };
 const errText = (e) => (typeof MSG[e.code] === "function" ? MSG[e.code](e.data || {}) : MSG[e.code]) || e.message || e.code || "Bilinmeyen hata";
+
+// Proje kuralı: ikincil satış tavanı = min(etkinlik tavanı, nominal × 1,2). Tüm tavan metinleri bunu kullanır.
+const effMax = (max, face) => Math.min(Number(max), Math.round(Number(face) * 120) / 100);
+const effPct = (max, face) => Math.round((effMax(max, face) / Number(face)) * 100);
 
 const state = {
   wallet: null, provider: null, demoWallet: null, organizer: null,
@@ -126,6 +130,7 @@ async function refresh() {
 
 /* ---------- Render ---------- */
 function render() {
+  if (state.tab !== "gate") stopScan();
   const isOrg = !!state.wallet && state.wallet === state.organizer;
   $("#tab-org").hidden = !isOrg;
   if (!isOrg && state.tab === "org") state.tab = "events";
@@ -154,10 +159,10 @@ function renderEvents() {
       </div>
       ${big ? `<div class="kv">
         <div><small>Etiket fiyatı</small><b>${fmt(e.face)} USDC</b></div>
-        <div><small>Tavan (%${e.cap_pct})</small><b class="amber">${fmt(e.max)} USDC</b></div>
+        <div><small>Tavan (%${effPct(e.max, e.face)})</small><b class="amber">${fmt(effMax(e.max, e.face))} USDC</b></div>
         <div><small>Organizatör payı</small><b>%${fmt(e.royalty_percent)}</b></div>
         <div><small>Kalan bilet</small><b>${e.remaining}</b></div></div>` : ""}
-      <div class="meta small">${big ? "" : `Etiket ${fmt(e.face)} USDC · Tavan ${fmt(e.max)} USDC · Telif %${fmt(e.royalty_percent)} · Kalan ${e.remaining}`}</div>
+      <div class="meta small">${big ? "" : `Etiket ${fmt(e.face)} USDC · Tavan ${fmt(effMax(e.max, e.face))} USDC · Telif %${fmt(e.royalty_percent)} · Kalan ${e.remaining}`}</div>
       <div class="bar" style="margin-top:0"><i style="width:${pct(e)}%"></i></div>
       <div class="ev-foot">
         <div class="price">${fmt(e.face)}<small>USDC</small></div>
@@ -181,7 +186,7 @@ function renderMarket() {
         <div class="title">${esc(ev.name)}</div>
         <div class="kv" style="grid-template-columns:repeat(3,minmax(0,1fr))">
           <div><small>Etiket fiyatı</small><b>${fmt(ev.face)} USDC</b></div>
-          <div><small>Fiyat tavanı (%${ev.cap_pct})</small><b class="amber">${fmt(ev.max)} USDC</b></div>
+          <div><small>Fiyat tavanı (%${effPct(ev.max, ev.face)})</small><b class="amber">${fmt(effMax(ev.max, ev.face))} USDC</b></div>
           <div><small>Organizatör payı</small><b>%${fmt(ev.royalty_percent)}</b></div>
         </div>
       </div>
@@ -197,7 +202,7 @@ function renderMarket() {
       <div style="min-width:0">
         <div class="t">${esc(l.event)} <span class="pill">${esc(l.ticket_id)}</span></div>
         <div class="mono">Satıcı ${esc(short(l.seller))}</div>
-        <div class="feeline">Tavan ${fmt(l.max_price)} · Telif %${fmt(l.royalty_percent)} = ${fmt(fee)} USDC</div>
+        <div class="feeline">Tavan ${fmt(effMax(l.max_price, l.face))} · Telif %${fmt(l.royalty_percent)} = ${fmt(fee)} USDC</div>
       </div>
       <div class="mid" style="text-align:right">
         <div class="price">${fmt(l.price)} USDC</div>
@@ -225,8 +230,8 @@ function renderMine() {
       ${t.status === "listed" ? `<div class="meta small">Bilet satışta; ilan kaldırılmadan giriş kodu üretilemez.</div>` : ""}
       ${t.status === "used" ? `<div class="meta small">Bu bilet giriş için kullanıldı.</div>` : ""}
       ${sellable ? `<div class="sellrow">
-        <label>Satış fiyatı (USDC · tavan ${fmt(t.max_price)})
-          <input type="number" min="1" step="0.5" value="${esc(Math.min(t.max_price, t.face * 1.05).toFixed(2))}" data-sell-for="${esc(t.id)}">
+        <label>Satış fiyatı (USDC · tavan ${fmt(effMax(t.max_price, t.face))})
+          <input type="number" min="1" step="0.5" value="${esc(Math.min(effMax(t.max_price, t.face), t.face * 1.05).toFixed(2))}" data-sell-for="${esc(t.id)}">
         </label>
         <button class="btn ghost sm" data-act="list" data-id="${esc(t.id)}">Satışa çıkar</button>
       </div>
@@ -311,8 +316,9 @@ async function listTicket(ticketId) {
   const price = Number(input?.value);
   const t = state.tickets.find((x) => x.id === ticketId);
   if (errEl) errEl.textContent = "";
-  if (t && price > t.max_price) {
-    if (errEl) errEl.innerHTML = `<span class="pill amber">Fiyat tavanı ${fmt(t.max_price)} USDC aşıldı</span>`;
+  const cap = t ? effMax(t.max_price, t.face) : null;
+  if (t && price > cap) {
+    if (errEl) errEl.innerHTML = `<span class="pill amber">Fiyat tavanı ${fmt(cap)} USDC aşıldı</span>`;
     return;
   }
   try {
@@ -387,8 +393,9 @@ function paintQr(ticketId) {
 async function rotate(ticketId) {
   const sess = state.sessions[ticketId];
   if (!sess) return;
+  const asked = Date.now();   // sunucu süresi istek anında başlar; sayaç da oradan başlamalı
   const r = await api("POST", "/qr/rotate", { session: sess.s });
-  lastRotate[ticketId] = { token: r.token, at: Date.now(), ttl: r.expires_in };
+  lastRotate[ticketId] = { token: r.token, at: asked, ttl: r.expires_in };
   paintQr(ticketId);
 }
 
@@ -455,7 +462,7 @@ function showGateVerdict(r, ticketId) {
 /* ---------- Olaylar ---------- */
 document.addEventListener("click", async (e) => {
   const tab = e.target.closest("[data-tab]");
-  if (tab) { state.tab = tab.dataset.tab; render(); return; }
+  if (tab) { state.tab = tab.dataset.tab; render(); if (state.tab === "gate") startScan(); return; }
   const b = e.target.closest("[data-act]");
   if (!b) return;
   const a = b.dataset.act, id = b.dataset.id;
@@ -469,20 +476,99 @@ document.addEventListener("click", async (e) => {
   if (a === "gate-handoff") return gateHandoff(id);
 });
 
+/* ---------- Görevli: kamerayla QR okut (jsQR) ---------- */
+const SCAN_COOLDOWN_MS = 3000;
+const scan = { stream: null, raf: 0, busy: false, until: 0, starting: false };
+const gateResult = (html) => { $("#gate-result").innerHTML = html; };
+
+function stopScan() {
+  cancelAnimationFrame(scan.raf);
+  scan.raf = 0;
+  if (scan.stream) { scan.stream.getTracks().forEach((t) => t.stop()); scan.stream = null; }
+  const v = $("#scan-video");
+  if (v) v.srcObject = null;
+}
+
+async function startScan() {
+  if (scan.stream || scan.starting) return;
+  scan.starting = true;
+  try {
+    if (!navigator.mediaDevices?.getUserMedia || !window.isSecureContext) {
+      gateResult(`<div class="verdict bad">Kamera yalnızca HTTPS (ya da localhost) üzerinde açılır. Sayfayı https:// adresiyle açın.</div>`);
+      return;
+    }
+    if (typeof jsQR !== "function") {
+      gateResult(`<div class="verdict bad">QR okuyucu kütüphanesi (jsQR) yüklenemedi. İnternet bağlantınızı kontrol edip sayfayı yenileyin.</div>`);
+      return;
+    }
+    gateResult(`<div class="verdict idle">Kamera başlatılıyor…</div>`);
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
+    } catch (e) {
+      const msg = e.name === "NotAllowedError" || e.name === "SecurityError" ? "Kamera izni verilmedi. Tarayıcı ayarlarından bu site için kamerayı etkinleştirip \"Kamerayı yeniden başlat\"a basın."
+        : e.name === "NotFoundError" || e.name === "OverconstrainedError" ? "Bu cihazda kamera bulunamadı."
+        : e.name === "NotReadableError" ? "Kamera başka bir uygulama tarafından kullanılıyor."
+        : "Kamera açılamadı: " + (e.message || e.name);
+      gateResult(`<div class="verdict bad">${esc(msg)}</div>`);
+      return;
+    }
+    // Sekme, izin beklenirken terk edildiyse kamerayı hemen kapat.
+    if (state.tab !== "gate") { stream.getTracks().forEach((t) => t.stop()); return; }
+    scan.stream = stream;
+    const v = $("#scan-video");
+    v.srcObject = stream;
+    await v.play().catch(() => {});
+    gateResult(`<div class="verdict idle">QR kodu çerçeveye getirin</div>`);
+    scan.until = 0; scan.busy = false;
+    scan.raf = requestAnimationFrame(scanFrame);
+  } finally { scan.starting = false; }
+}
+
+function scanFrame() {
+  if (!scan.stream) return;
+  scan.raf = requestAnimationFrame(scanFrame);
+  const v = $("#scan-video");
+  if (scan.busy || Date.now() < scan.until || v.readyState < 2 || !v.videoWidth) return;
+  const c = $("#scan-canvas"), ctx = c.getContext("2d", { willReadFrequently: true });
+  c.width = v.videoWidth; c.height = v.videoHeight;
+  ctx.drawImage(v, 0, 0, c.width, c.height);
+  const img = ctx.getImageData(0, 0, c.width, c.height);
+  const code = jsQR(img.data, img.width, img.height, { inversionAttempts: "dontInvert" });
+  if (code && code.data) handleScanned(code.data);
+}
+
+async function handleScanned(token) {
+  scan.busy = true;
+  try {
+    const r = await verifyToken(token.trim());
+    gateResult(verdictHtml(r));
+  } finally {
+    scan.busy = false;
+    scan.until = Date.now() + SCAN_COOLDOWN_MS;   // aynı kod art arda gönderilmesin
+  }
+}
+$("#scan-restart").addEventListener("click", () => { stopScan(); startScan(); });
+
 /* ---------- Organizatör: etkinlik oluştur + bilet bas ---------- */
+const orgForm = $("#org-form");
+const syncMax = () => { const f = Number(orgForm.elements.face.value); orgForm.elements.max.value = f > 0 ? (f * 1.2).toFixed(2) : ""; };
+orgForm.elements.face.addEventListener("input", syncMax);
+syncMax();
 $("#org-form").addEventListener("submit", async (ev) => {
   ev.preventDefault();
   if (state.wallet !== state.organizer) return toast("Yalnızca organizatör cüzdanı bilet basabilir", true);
   const f = Object.fromEntries(new FormData(ev.target));
-  const face = Number(f.face), max = Number(f.max), count = Number(f.count);
-  if (!(max >= face)) return toast("Azami fiyat nominal fiyattan düşük olamaz", true);
+  // Proje kuralı: tavan = nominal × 1,2 (%20), telif %5 — formdaki değerlere güvenilmez, burada sabitlenir.
+  const face = Number(f.face), max = face * 1.2, ROY = 5, count = Number(f.count);
+  if (!(face > 0)) return toast("Nominal fiyat 0'dan büyük olmalı", true);
   if (!(Number.isInteger(count) && count >= 1 && count <= 10 && count <= Number(f.supply))) return toast("Bilet adedi 1–10 arası ve kontenjanı aşmayan tam sayı olmalı", true);
   const btn = $("#org-btn"), steps = $("#org-steps");
   btn.disabled = true;
   let eventId = null, minted = 0;
   try {
     steps.textContent = "Etkinlik zincire yazılıyor…";
-    ({ event_id: eventId } = await api("POST", "/events", { name: f.name, face_price: face, max_price: max, royalty_percent: Number(f.roy), supply: Number(f.supply) }));
+    ({ event_id: eventId } = await api("POST", "/events", { name: f.name, face_price: face, max_price: max, royalty_percent: ROY, supply: Number(f.supply) }));
     for (; minted < count; minted++) {
       steps.textContent = `Bilet basılıyor (${minted + 1}/${count})…`;
       await api("POST", "/tickets/mint", { event_id: eventId, owner: state.wallet });
@@ -502,4 +588,4 @@ $("#org-form").addEventListener("submit", async (ev) => {
 api("GET", "/health").then((h) => { state.organizer = h.organizer || null; render(); }).catch(() => {});
 renderWallet();
 refresh();
-setInterval(() => { if (state.wallet) refresh(); }, 15000);  // canlı senkronizasyon: pazar ve biletler
+setInterval(() => { if (state.wallet && !document.activeElement?.closest("#mine, #org-form")) refresh(); }, 15000);  // canlı senkronizasyon: pazar ve biletler
