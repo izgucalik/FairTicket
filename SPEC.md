@@ -1,185 +1,95 @@
-FAIRTICKET
+FairTicket — Proje Kapsamı ve İlerleme Notu
 
-Solana Tabanlı Şeffaf ve Kontrollü Biletleme Ekosistemi
+Solana Hackathon Çalışma Notları | Akışlar, İhtiyaç Listesi ve MVP Kapsamı
 
-Hackathon Proje Önerisi • Geliştirilmiş Sürüm
+Mentörümüzün yönlendirmesi doğrultusunda; projenin temel çalışma mantığını, kullanıcı ve sistem akışlarını, ihtiyaç duyacağımız bileşenleri ve demo için sınırlandırdığımız MVP kapsamını bu notta toparladık. Ekip arkadaşlarımızın teknik seviyesini gözeterek aşırı karmaşık terimler yerine somut adımlara odaklandık.
 
-Temel yaklaşım
+1. Projenin Çözdüğü Temel Sorun ve Çözüm Mantığı
 
-Bilet sahipliğini doğrulanabilir hâle getirmek, ikincil satışları belirlenen kurallara bağlamak ve etkinlik girişinde tekrar kullanımı önlemek.
+Etkinlik biletlerinde yaşanan başlıca üç probleme odaklanıyoruz:
 
-1. Proje Özeti
+Karaborsa ve Fahiş Fiyat: İkincil satışta bilet fiyatına maksimum %20 tavan fiyat kuralı koyuyoruz. Akıllı sözleşme belirlenen tavanın üzerindeki satış emirlerini reddeder.
 
-FairTicket, etkinlik biletlerinde görülen sahte bilet, kopyalanmış QR kod, kontrolsüz ikincil satış ve güvensiz bilet devri sorunlarına yönelik Solana tabanlı bir biletleme projesidir. Sistem, biletin dijital sahipliğini zincir üzerinde temsil eder; biletin devredilmesi ve yeniden satılması için kurallar tanımlar; etkinlik girişinde ise kısa ömürlü ve tek kullanımlık doğrulama akışı kullanır.
+Telif / Pay Dağıtımı: Bilet ikinci el pazarında el değiştirdiğinde satış tutarının %5'i otomatik olarak kulüp veya etkinlik organizatörünün hesabına aktarılır.
 
-Projenin hackathon sürümünde amaç, tüm ticari ödeme ve turnike altyapısını üretim seviyesinde tamamlamak değil; temel iddiayı çalışan bir prototiple göstermektir: bilet oluşturma, kurallı ikincil satış ve tek kullanımlık giriş doğrulaması.
+Sahte Bilet ve Kopyalama: Ekran görüntüsüyle turnikeden geçişi engellemek için bilet ekranında kısa süreli yenilenen dinamik QR kullanılır. Kapıda ilk okutulduğu an bilet 'kullanıldı' olarak işaretlenir ve tekrar giriş denemeleri sistem tarafından durdurulur.
 
-2. Problem ve Önerilen Çözüm
+2. Kullanıcı Deneyimi Akışı (Front-End / Ekranlar)
 
-Problem
+Kullanıcının ve kapıdaki görevlinin web arayüzünde karşılaşacağı adım adım akış şu şekildedir:
 
-Kullanıcıya etkisi
+A. Birincil Satış (Etkinlikten Bilet Alma)
 
-FairTicket yaklaşımı
+Giriş ve Cüzdan: Kullanıcı web sitesine girer ve Phantom cüzdanı ile oturum açar.
 
-Sahte veya kopyalanmış bilet
+Bilet Seçimi: Etkinlik detay sayfasından bilet adedini seçer.
 
-Aynı bilet birden fazla kişiye satılabilir; kullanıcı etkinliğe alınmayabilir.
+Satın Alma: Devnet üzerindeki test token'ı ile işlemi onaylar. Bilet kullanıcının cüzdanına ve profilindeki 'Biletlerim' sekmesine aktarılır.
 
-Biletin geçerliliği, yetkili program ve bilet kaydı üzerinden kontrol edilir.
+B. İkincil Pazar (Bilet Devri ve Yeniden Satış)
 
-Kontrolsüz ikincil satış
+Satışa Koyma: Kullanıcı gitmekten vazgeçtiği bileti seçer ve satmak istediği fiyatı girer.
 
-Biletler yüksek fiyatlarla yeniden satılabilir; organizatör satıştan pay alamayabilir.
+Kural Kontrolü: Sistem girilen fiyatı kontrol eder (Örn: 100 TL bilet için max 120 TL). Limit aşılıyorsa uyarı verir, uygunsa listeler.
 
-Pazar yeri işlemi, organizatörün belirlediği fiyat ve telif kurallarına göre yürütülür.
+Devir: Yeni bir alıcı bileti satın aldığında, akıllı sözleşme ödemeyi satıcıya, %5 telifi organizatöre iletir ve bilet mülkiyetini alıcının cüzdanına geçirir.
 
-Güvensiz bilet devri
+C. Etkinlik Günü (Giriş ve Doğrulama)
 
-Alıcı ve satıcı platform dışı ödeme/devir nedeniyle dolandırıcılık riski yaşar.
+Dinamik Kod: Kullanıcı kapıda biletini açtığında 15-20 saniyede bir güncellenen dinamik bir QR kod görür.
 
-Ödeme ve bilet devri tek bir pazar yeri işlemi içinde eşleştirilir.
+Görevli Taraması: Turnikedeki görevli web tabanlı tarayıcı arayüzüyle kodu okutur.
 
-3. Ürün Akışı ve Sistem Mimarisi
+Durum Güncellemesi: Geçerli bilette yeşil onay verir ve bilet 'kullanıldı' durumuna geçer. Aynı kod veya ekran görüntüsü ikinci kez okutulduğunda kırmızı uyarı vererek geçişi engeller.
 
-FairTicket beş ana bileşenden oluşur:
+3. Sistem ve Arka Plan Akışı (Mimarinin Çalışması)
 
-Web arayüzü: Etkinlikleri, biletleri ve ikincil pazar yerini gösterir.
+Kullanıcı arayüzdeki butonlara bastığında arka planda gerçekleşen işlem adımları:
 
-Solana cüzdanı: Kullanıcının işlemleri imzalamasını ve bilet sahipliğini yönetmesini sağlar.
+Aşama: Bilet Basımı
+Ön Yüz (Frontend): Organizatör etkinlik detayını girer.
+Arka Plan & Akıllı Sözleşme: Anchor programı bilet kaydını açar ve test cüzdanına mint eder.
 
-Solana programı (Anchor): Bilet oluşturma, listeleme, satış kuralları ve kullanılmış bilet durumunu yönetir.
+Aşama: İkincil Listeleme
+Ön Yüz (Frontend): Kullanıcı satış fiyatını yazar.
+Arka Plan & Akıllı Sözleşme: Pazar yeri programı %20 tavan kuralını doğrular ve listelemeyi kaydeder.
 
-Doğrulama servisi: Girişte sunulan kısa ömürlü kodu, imzayı ve tek kullanımlık nonce bilgisini kontrol eder.
+Aşama: İkincil Satış
+Ön Yüz (Frontend): Alıcı cüzdanıyla ödemeyi onaylar.
+Arka Plan & Akıllı Sözleşme: Sözleşme parayı (%95 / %5) paylaştırır, bilet sahipliğini devreder.
 
-Turnike/görevli arayüzü: QR kodu tarar, doğrulama sonucunu gösterir ve başarılı girişten sonra bileti kullanılmış olarak işaretler.
+Aşama: Kapı Doğrulaması
+Ön Yüz (Frontend): Kullanıcı dinamik QR gösterir.
+Arka Plan & Akıllı Sözleşme: Doğrulama servisi süreyi ve tek kullanımlık nonce'ı kontrol edip bileti kapatır.
 
-3.1 Kullanıcı yolculuğu
+4. İhtiyaç Listesi ve Ekip İş Bölümü
 
-Organizatör, etkinliği ve bilet kurallarını sisteme tanımlar.
+Hackathon teslimine kadar hazırlamamız gereken işler 3 ana başlık altında toplanmıştır:
 
-Kullanıcı cüzdanını bağlar ve Devnet üzerinde test amaçlı bilet edinir.
+Arayüz (Frontend): Etkinlik listeleme sayfası, cüzdan bağlama butonu, kullanıcı bilet sayfası (dinamik QR gösteren) ve görevli tarayıcı ekranı.
 
-Biletini devretmek isteyen kullanıcı, bileti FairTicket pazar yerinde listeler.
+Akıllı Sözleşme (Program): Devnet üzerinde bilet üretme, %20 tavan fiyat ve %5 telif kontrollü ikincil satış programı, bilet durumunu güncelleyen kontrol mekanizması.
 
-Alıcı, belirlenen fiyat sınırları içindeki bileti satın alır; ödeme dağıtımı ve bilet devri aynı işlem akışında gerçekleştirilir.
+Dokümantasyon & Sunum: GitHub README dosyası, sistem akış şeması ve jüri önünde yapılacak 3 dakikalık sunum slaytı.
 
-Etkinlik girişinde kullanıcıya ait kısa ömürlü QR kod taranır.
+5. Kullanılacak Teknolojiler ve İşlevleri
 
-Doğrulama başarılıysa bilet kullanılmış olarak işaretlenir; tekrar okutma reddedilir.
+Solana Devnet: Canlı para kullanmadan tüm süreci test token'ları ile güvenle deneyeceğimiz geliştirici ağı.
 
-4. Teknik Tasarım ve Güvenlik
+Phantom Wallet: Kullanıcıların siteye bağlanmasını ve bilet sahipliğini imzalamasını sağlayan cüzdan arayüzü.
 
-4.1 Bilet sahipliği ve yetkili bilet üretimi
+Anchor Framework: Solana üzerinde akıllı sözleşme (program) geliştirirken kuralları yazmamızı sağlayan çatı.
 
-Her etkinlik için yetkili organizatör hesabı ve etkinlik kaydı tanımlanır. Biletler yalnızca bu yetkili akış üzerinden oluşturulur. Pazar yeri ve doğrulama servisi, biletin doğru etkinliğe bağlı olduğunu ve yetkili program tarafından üretildiğini kontrol eder.
+Token-2022 (Transfer Hook Mantığı): Bilet transferi gerçekleşirken ek güvenlik ve yetki kontrollerini sağlamak için faydalanılan token standardı.
 
-4.2 İkincil satış, fiyat sınırı ve telif
+Dinamik Doğrulama (TOTP / Nonce): Girişte üretilen QR kodun kopyalanamamasını ve tek sefer geçerli olmasını sağlayan zaman tabanlı kontrol mantığı.
 
-Önerilen modelde ikincil satış, FairTicket pazar yeri programı üzerinden yapılır. Program; biletin listeleme kaydını, satış fiyatını, organizatörün belirlediği azami fiyat kuralını ve telif oranını kontrol eder. Satış tamamlandığında alıcı ödemesi satıcı ve organizatör arasında tanımlanan oranlara göre dağıtılır ve bilet yeni sahibine aktarılır.
+React / Next.js: Kullanıcının ve kapı görevlisinin etkileşime gireceği web ekranlarının tasarımı.
 
-Önemli teknik not: Token-2022 Transfer Hook, transfer sırasında özel program mantığı çalıştırılmasını sağlar; tek başına satış fiyatını, ödeme tutarını veya telifin ödendiğini kanıtlamaz. Bu nedenle fiyat kontrolü ve ödeme dağıtımı pazar yeri programında açıkça uygulanmalı; Hook ise izin verilen transfer yolunu sınırlandıran ek kontrol olarak tasarlanmalıdır. Ücretsiz devir, iade ve organizatör kaynaklı transfer gibi istisnalar da ayrıca tanımlanmalıdır.
+6. Hackathon MVP Kapsamı (Sınırlandırma)
 
-4.3 Dinamik QR ve giriş doğrulaması
+Kısıtlı sürede dağılmamak ve jüriye çalışan bir prototip gösterebilmek için kapsamı netleştirdik:
 
-Giriş ekranı, bilet kimliğiyle birlikte kısa süre geçerli bir doğrulama değeri ve tek kullanımlık nonce içeren QR üretir. Sunucu; bilet sahipliğini, zaman penceresini, imza ve nonce geçerliliğini kontrol eder. Başarılı doğrulama sonrasında nonce tüketilir ve biletin kullanılmış durumu güncellenir. Aynı doğrulama verisinin yeniden kullanılması reddedilir.
+MVP Dahilinde (Yapılacaklar): Devnet üzerinde bilet basımı, kurallı ikincil satış (tavan fiyat kontrolü ve telif kesintisi) ve telefon kamerasıyla dinamik QR okutarak biletin tek seferlik kullanıma kapatılması.
 
-Güvenlik sınırı: Dinamik QR ekran görüntüsünün yeniden kullanılma riskini azaltır; tek başına tüm saldırıları ortadan kaldırdığı iddia edilmemelidir. Sunucu güvenliği, turnike cihazlarının yetkilendirilmesi, ağ bağlantısı ve eş zamanlı okutma senaryoları da test edilmelidir.
-
-4.4 Ödeme yaklaşımı
-
-Hackathon prototipinde gerçek para yerine Solana Devnet üzerinde test token'ı veya Devnet USDC kullanılacaktır. Kredi kartı, banka transferi, TL dönüşümü ve gerçek ödeme kuruluşu entegrasyonları canlı ürünün sonraki aşamasına bırakılmıştır.
-
-5. Hackathon MVP Kapsamı
-
-Takımın sınırlı sürede tamamlayabileceği ve jüriye canlı olarak gösterebileceği kapsam üç ana işlevle sınırlandırılmıştır:
-
-MVP özelliği
-
-Demo kabul ölçütü
-
-Bilet oluşturma ve sahiplik
-
-Devnet üzerinde bilet oluşturma, cüzdana tanımlama ve sahipliği arayüzde gösterme.
-
-Kurallı ikincil satış
-
-Bir biletin pazar yerinde listelenmesi; azami fiyat kuralının kontrol edilmesi; test token'ıyla ödeme ve telif dağıtımının gösterilmesi.
-
-Tek kullanımlık giriş doğrulaması
-
-QR üretme/tarama, geçerlilik kontrolü, başarılı girişte kullanıldı durumuna geçme ve ikinci okutmayı reddetme.
-
-5.1 MVP dışında bırakılanlar
-
-Gerçek kredi kartı, banka ve TL–USDC dönüşüm entegrasyonları.
-
-Gerçek stadyum turnikeleri ve yüksek hacimli üretim altyapısı.
-
-Üretim ortamında kapsamlı multisig, kurumsal organizatör paneli ve tüm iade senaryoları.
-
-Bağımsız güvenlik denetimi ve ana ağda gerçek varlıklarla kullanım.
-
-6. Demo Senaryosu ve Sunum Akışı
-
-0:00–0:30 | Problem — Sahte bilet, kopyalanabilir QR ve kontrolsüz yeniden satış sorununu kısa bir örnekle anlatın.
-
-0:30–1:10 | Bilet oluşturma — Organizatör/etkinlik kaydı üzerinden Devnet biletini oluşturun ve cüzdandaki sahipliği gösterin.
-
-1:10–2:00 | İkincil satış — Bileti izin verilen fiyatla listeleyin; sınırı aşan satış denemesinin reddedildiğini, geçerli satışta ödeme/telif dağıtımını gösterin.
-
-2:00–2:40 | Giriş doğrulaması — QR kodu taratın, biletin kullanıldı durumuna geçtiğini ve tekrar okutmanın reddedildiğini gösterin.
-
-2:40–3:00 | Kapanış — Çözümün kullanıcıya, organizatöre ve etkinlik sektörüne sağladığı değeri özetleyin.
-
-7. Jürinin Sorabileceği Sorular
-
-Kullanıcı bileti ücretsiz devredebilir mi?
-
-Bu, ürün kuralı olarak açıkça kararlaştırılmalıdır. Ücretsiz devir desteklenecekse fiyat sınırı ve telif kuralından ayrı, yetkili bir transfer akışı tanımlanmalıdır.
-
-Platform dışı nakit satış tamamen engellenebilir mi?
-
-Zincir dışındaki nakit anlaşmasını mutlak biçimde engellemek mümkün değildir. Sistem, bilet token'ının izinsiz transferini sınırlandırarak ve resmi pazar yerini güvenli seçenek hâline getirerek bu riski azaltır.
-
-İnternet kesilirse turnike çalışır mı?
-
-Hackathon MVP'sinde çevrimiçi doğrulama varsayılır. Çevrimdışı kullanım, tekrar kullanım ve senkronizasyon riskleri nedeniyle ayrı bir sonraki aşama tasarımı gerektirir.
-
-Aynı QR iki turnikede aynı anda okutulursa ne olur?
-
-Nonce tüketimi ve biletin kullanıldı durumuna geçişi tekil/atomik bir işlem olarak tasarlanmalıdır. Demo öncesinde eş zamanlı istek testi yapılmalıdır.
-
-Transfer Hook fiyatı nasıl kontrol eder?
-
-Hook transfer sırasında özel program kontrolü sağlar; fiyat ve ödeme bilgisi pazar yeri işleminde doğrulanmalıdır. Hook tek başına fiyatlandırma veya ödeme garantisi değildir.
-
-Neden Solana?
-
-Düşük işlem maliyeti, hızlı işlem onayı ve Token-2022 gibi token uzantıları, sık ve düşük tutarlı bilet işlemleri için uygun bir altyapı sunar. Performans iddiaları ölçülmüş test sonuçlarıyla desteklenmelidir.
-
-8. Başarı Ölçütleri ve Son Kontrol Listesi
-
-Bilet yalnızca yetkili etkinlik/program akışıyla oluşturulabiliyor.
-
-Bilet sahipliği cüzdan ve program kaydı üzerinden doğrulanabiliyor.
-
-Azami fiyatı aşan listeleme/satış işlemi reddediliyor.
-
-Başarılı ikincil satışta ödeme ve telif dağıtımı beklenen şekilde gerçekleşiyor.
-
-Geçerli QR doğrulaması bileti kullanıldı durumuna geçiriyor.
-
-Aynı QR veya nonce tekrar kullanıldığında işlem reddediliyor.
-
-Demo boyunca kullanılan ağ, token ve test hesapları jüriye açıkça belirtiliyor.
-
-Henüz geliştirilmemiş özellikler canlı özellik gibi sunulmuyor.
-
-9. Sonuç
-
-FairTicket, gerçek bir sektörel probleme odaklanan ve Solana altyapısını işlevsel bir amaçla kullanan bir hackathon fikridir. Projenin gücü, çok sayıda özelliği vaat etmesinden değil; bilet sahipliği, kurallı yeniden satış ve güvenli giriş doğrulamasını çalışan bir uçtan uca demoda kanıtlamasından gelecektir. Bu nedenle takımın önceliği kapsamı büyütmek değil, üç temel akışı güvenilir biçimde tamamlamak olmalıdır.
-
-Not: Bu belge geliştirme ve sunum planıdır; burada anlatılan teknik bileşenlerin tamamının uygulandığı anlamına gelmez. Demo öncesinde her özellik gerçek Devnet işlemleriyle doğrulanmalıdır.
-Görevli ekranı: QR tarar, /qr/verify sonucunu gösterir.
-Eş zamanlı iki okutmada sadece biri başarılı olmalı. Demo öncesi test edilecek."
+MVP Dışında (Şimdilik Yapılmayacaklar): Gerçek kredi kartı / TL ödeme altyapıları, fiziki stadyum turnike donanımları ve karmaşık bilet iade mekanizmaları.

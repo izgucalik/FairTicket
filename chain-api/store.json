@@ -1,7 +1,7 @@
 {
   "seq": {
-    "e": 8,
-    "t": 16,
+    "e": 9,
+    "t": 17,
     "l": 9
   },
   "qrSecret": "824e26c8ab945bfea0e31764cd4856b56d51644987d376ce5807717bb1cb9407",
@@ -93,6 +93,17 @@
       "royaltyBps": 1000,
       "supply": 150,
       "ticketCount": 0
+    },
+    "e9": {
+      "id": "e9",
+      "name": "Test Etkinliği (Adım 2)",
+      "pda": "HHeDRXErZDy5mDVnirSjcCQi6ioeF4EbLfaFA1jRWqFd",
+      "chainEventId": 1795766930155,
+      "faceBase": "10000000",
+      "maxBps": 12000,
+      "royaltyBps": 500,
+      "supply": 5,
+      "ticketCount": 1
     }
   },
   "tickets": {
@@ -191,6 +202,12 @@
       "eventId": "e7",
       "index": 7,
       "used": true
+    },
+    "t17": {
+      "id": "t17",
+      "eventId": "e9",
+      "index": 0,
+      "used": false
     }
   },
   "listings": {

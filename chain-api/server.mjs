@@ -163,7 +163,7 @@ function isRateLimit(e) {
   return /429|Too Many Requests/i.test(s);
 }
 
-app.get("/health", send(async () => ({ ok: true })));
+app.get("/health", send(async () => ({ ok: true, organizer: organizer.publicKey.toBase58() })));
 
 // POST /events — organizatör etkinlik ve kuralları tanımlar (create_event).
 app.post("/events", send(async ({ body }) => {

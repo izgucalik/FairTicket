@@ -26,7 +26,7 @@ const MSG = {
 const errText = (e) => (typeof MSG[e.code] === "function" ? MSG[e.code](e.data || {}) : MSG[e.code]) || e.message || e.code || "Bilinmeyen hata";
 
 const state = {
-  wallet: null, provider: null, demoWallet: null,
+  wallet: null, provider: null, demoWallet: null, organizer: null,
   events: [], listings: [], tickets: [],
   tab: "events", sessions: {}, rot: {}, gate: null,
 };
@@ -93,7 +93,7 @@ function renderWallet() {
     return;
   }
   const label = state.demoWallet ? "Demo cüzdan" : "Phantom";
-  el.innerHTML = `<button class="wbtn conn" data-act="disconnect" title="Bağlantıyı kes"><span class="dot ${state.demoWallet ? "demo" : ""}"></span>${label} · ${esc(short(state.wallet))}</button>`;
+  el.innerHTML = `<button class="wbtn conn" data-act="disconnect" title="${esc(state.wallet)} — bağlantıyı kes"><span class="dot ${state.demoWallet ? "demo" : ""}"></span>${label} · ${esc(short(state.wallet))}</button>`;
 }
 
 // Hibrit imza: sunucu işlemi kurar, cüzdan imzalar (Phantom ya da demo sunucu imzası), sunucu gönderir.
@@ -126,6 +126,9 @@ async function refresh() {
 
 /* ---------- Render ---------- */
 function render() {
+  const isOrg = !!state.wallet && state.wallet === state.organizer;
+  $("#tab-org").hidden = !isOrg;
+  if (!isOrg && state.tab === "org") state.tab = "events";
   $("#cnt-market").textContent = state.listings.length;
   $("#cnt-mine").textContent = state.tickets.filter((t) => t.status !== "used").length;
   renderEvents();
@@ -458,7 +461,7 @@ document.addEventListener("click", async (e) => {
   const a = b.dataset.act, id = b.dataset.id;
   if (a === "connect-phantom") return connectPhantom().catch((x) => toast(x.message || "Bağlantı iptal edildi", true));
   if (a === "connect-demo") return connectDemo().catch((x) => toast(errText(x), true));
-  if (a === "disconnect") { state.wallet = null; state.demoWallet = null; state.provider = null; state.sessions = {}; Object.values(state.rot).forEach(clearInterval); state.rot = {}; lastRotate = {}; renderWallet(); return refresh(); }
+  if (a === "disconnect") { try { await state.provider?.disconnect(); } catch {} state.wallet = null; state.demoWallet = null; state.provider = null; state.sessions = {}; Object.values(state.rot).forEach(clearInterval); state.rot = {}; lastRotate = {}; renderWallet(); return refresh(); }
   if (a === "buy-primary") return buyPrimary(id);
   if (a === "buy") return buy(id);
   if (a === "list") return listTicket(id);
@@ -466,7 +469,37 @@ document.addEventListener("click", async (e) => {
   if (a === "gate-handoff") return gateHandoff(id);
 });
 
+/* ---------- Organizatör: etkinlik oluştur + bilet bas ---------- */
+$("#org-form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  if (state.wallet !== state.organizer) return toast("Yalnızca organizatör cüzdanı bilet basabilir", true);
+  const f = Object.fromEntries(new FormData(ev.target));
+  const face = Number(f.face), max = Number(f.max), count = Number(f.count);
+  if (!(max >= face)) return toast("Azami fiyat nominal fiyattan düşük olamaz", true);
+  if (!(Number.isInteger(count) && count >= 1 && count <= 10 && count <= Number(f.supply))) return toast("Bilet adedi 1–10 arası ve kontenjanı aşmayan tam sayı olmalı", true);
+  const btn = $("#org-btn"), steps = $("#org-steps");
+  btn.disabled = true;
+  let eventId = null, minted = 0;
+  try {
+    steps.textContent = "Etkinlik zincire yazılıyor…";
+    ({ event_id: eventId } = await api("POST", "/events", { name: f.name, face_price: face, max_price: max, royalty_percent: Number(f.roy), supply: Number(f.supply) }));
+    for (; minted < count; minted++) {
+      steps.textContent = `Bilet basılıyor (${minted + 1}/${count})…`;
+      await api("POST", "/tickets/mint", { event_id: eventId, owner: state.wallet });
+    }
+    steps.textContent = "";
+    toast(`${count} bilet mint edildi (${f.name}). Biletlerim sekmesine eklendi.`);
+    state.tab = "mine";
+  } catch (e) {
+    steps.textContent = "";
+    toast((eventId ? `Etkinlik oluştu (${eventId}) ama ${minted}/${count} bilet basıldı: ` : "Etkinlik oluşturulamadı: ") + errText(e), true);
+  }
+  btn.disabled = false;
+  await refresh();
+});
+
 /* ---------- Başlatma ---------- */
+api("GET", "/health").then((h) => { state.organizer = h.organizer || null; render(); }).catch(() => {});
 renderWallet();
 refresh();
 setInterval(() => { if (state.wallet) refresh(); }, 15000);  // canlı senkronizasyon: pazar ve biletler
