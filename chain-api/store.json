@@ -1,1 +1,8 @@
-{}
+{
+  "seq": { "e": 0, "t": 0, "l": 0 },
+  "qrSecret": "824e26c8ab945bfea0e31764cd4856b56d51644987d376ce5807717bb1cb9407",
+  "events": {},
+  "tickets": {},
+  "listings": {},
+  "nonces": {}
+}
