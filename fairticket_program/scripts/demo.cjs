@@ -8,7 +8,7 @@ const {
 const { getOrCreateAssociatedTokenAccount, mintTo, TOKEN_PROGRAM_ID } = require("@solana/spl-token");
 const { BN } = anchor;
 
-const MINT = new PublicKey("9GoqbmaYzShY2hMmaAUkNZf9gysrd4TNzdiczmHuLUJn");
+const MINT = new PublicKey("7iNRCoLV5rdwtZXNJC2aHCocYGUiGsKkBRE8J3ovZ7vE");
 const USDC = 1_000_000; // 6 ondalik
 
 async function expectFail(label, fn) {
