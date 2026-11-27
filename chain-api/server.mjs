@@ -178,6 +178,9 @@ app.post("/events", send(async ({ body }) => {
   const faceBase = toBase(face);
   const maxBps = Math.round((max / face) * 10000);
   const royaltyBps = Math.round(roy * 100);
+  // Proje kuralı (SPEC): ikincil satış tavanı nominalin %120'si, telif %5. Farklı değer reddedilir.
+  if (maxBps !== 12000) throw new ApiErr(422, "invalid_price_cap", "Azami fiyat nominal fiyatın tam %120'si olmalı (%20 tavan)", { ok: false, expected_max_price: face * 1.2 });
+  if (royaltyBps !== 500) throw new ApiErr(422, "invalid_royalty", "Telif oranı %5 olmalı", { ok: false, expected_royalty_percent: 5 });
   const chainEventId = Date.now();
   const pda = eventPda(chainEventId);
 
@@ -556,10 +559,10 @@ app.post("/tx/submit", send(async ({ body }) => {
 // Her çalıştırmada: adı aynı etkinliği yeniden oluşturmaz, eksik bilet/ilanları tamamlar.
 // Satıcı, sunucunun tuttuğu demo satıcı keypair'idir (zincirde list_ticket imzalanabilsin diye).
 const SEED_EVENTS = [
-  { name: "Devnet Demo Konseri", face: 50, max: 60, roy: 10, supply: 300, prices: [54, 59] },
-  { name: "Kadıköy Jazz Gecesi", face: 40, max: 48, roy: 10, supply: 150, prices: [] },
-  { name: "Solana İstanbul Zirvesi 2026", face: 50, max: 65, roy: 10, supply: 200, prices: [58, 62] },
-  { name: "İstanbul Elektronik Müzik Festivali", face: 80, max: 100, roy: 12, supply: 300, prices: [95, 88] },
+  { name: "Devnet Demo Konseri", face: 50, max: 60, roy: 5, supply: 300, prices: [54, 59] },
+  { name: "Kadıköy Jazz Gecesi", face: 40, max: 48, roy: 5, supply: 150, prices: [] },
+  { name: "Solana İstanbul Zirvesi 2026", face: 50, max: 60, roy: 5, supply: 200, prices: [58, 60] },
+  { name: "İstanbul Elektronik Müzik Festivali", face: 80, max: 96, roy: 5, supply: 300, prices: [95, 88] },
   { name: "Teknoloji & Web3 Hackathon Finali", face: 25, max: 30, roy: 5, supply: 120, prices: [27] },
 ];
 const SELLER_ADDR = Keypair.fromSecretKey(Uint8Array.from(demoKeys.seller)).publicKey.toBase58();
@@ -577,7 +580,17 @@ async function selfCall(method, path, body) {
 async function runSeed() {
   const created = [];
   for (const spec of SEED_EVENTS) {
-    let ev = Object.values(store.events).find((e) => e.name === spec.name);
+    // Telifi ya da tavanı spec ile uyuşmayan eski kayıtlar (zincirde kalır) emekli edilir; yeni kayıt açılır.
+    for (const old of Object.values(store.events)) {
+      if (old.name === spec.name && !old.retired && (old.royaltyBps !== spec.roy * 100 || old.maxBps !== Math.round((spec.max / spec.face) * 10000))) {
+        old.retired = true;
+        if (old.name === "Devnet Demo Konseri") store.demoTickets = false;   // demo cüzdanı yeni etkinlikten bilet alsın
+        for (const l of Object.values(store.listings)) {
+          if (l.status === "active" && store.tickets[l.ticketId]?.eventId === old.id) l.status = "retired";
+        }
+      }
+    }
+    let ev = Object.values(store.events).find((e) => e.name === spec.name && !e.retired);
     if (!ev) {
       const r = await selfCall("POST", "/events", { name: spec.name, face_price: spec.face, max_price: spec.max, royalty_percent: spec.roy, supply: spec.supply });
       ev = store.events[r.event_id];
@@ -597,7 +610,7 @@ async function runSeed() {
   }
   // Demo cüzdanına (sunucunun buyer anahtarı) hazır 2 bilet: Biletlerim ilk açılışta dolu görünsün.
   if (!store.demoTickets) {
-    const demo = Object.values(store.events).find((e) => e.name === "Devnet Demo Konseri");
+    const demo = Object.values(store.events).find((e) => e.name === "Devnet Demo Konseri" && !e.retired);
     for (let i = 0; i < 2; i++) await selfCall("POST", "/tickets/mint", { event_id: demo.id, owner: DEMO_BUYER });
     store.demoTickets = true;
   }
@@ -616,11 +629,14 @@ const META = {
   "Teknoloji & Web3 Hackathon Finali": { venue: "Bilgi Üniversitesi Kampüsü", date: "2027-03-08T10:00:00+03:00", tag: "Hackathon" },
 };
 
+// Ek bilgisi olmayan etkinlikler için dürüst yer tutucular: uydurma tarih gösterilmez (date: null).
+const DEFAULT_META = { venue: "Venue to be announced", date: null, tag: "Event" };
+
 app.get("/events", send(async () => {
   const events = Object.values(store.events)
-    .filter((e) => META[e.name]) // eski test kayıtları (Konser A) listelenmez
+    .filter((e) => !e.retired) // emekli (eski/test) kayıtlar listelenmez
     .map((e) => {
-      const m = META[e.name];
+      const m = META[e.name] || DEFAULT_META;   // organizatör formundan açılan etkinlikler için varsayılan bilgi
       const face = usdc(e.faceBase), max = usdc(capBase(e));
       return {
         id: e.id, name: e.name, venue: m.venue, date: m.date, tag: m.tag, featured: !!m.featured,
