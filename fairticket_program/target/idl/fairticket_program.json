@@ -1,0 +1,577 @@
+{
+  "address": "6xrY8GHUgWPZrjkRdNGTrD5Cp55icUN3L4Fot7MLiujs",
+  "metadata": {
+    "name": "fairticket_program",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "buy_ticket",
+      "discriminator": [
+        11,
+        24,
+        17,
+        193,
+        168,
+        116,
+        164,
+        169
+      ],
+      "accounts": [
+        {
+          "name": "buyer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "event",
+          "relations": [
+            "ticket"
+          ]
+        },
+        {
+          "name": "ticket",
+          "writable": true
+        },
+        {
+          "name": "listing",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "ticket"
+              }
+            ]
+          }
+        },
+        {
+          "name": "seller",
+          "docs": [
+            "Listeleme kapaninca kira bedeli buraya doner"
+          ],
+          "writable": true,
+          "relations": [
+            "listing"
+          ]
+        },
+        {
+          "name": "buyer_token",
+          "writable": true
+        },
+        {
+          "name": "seller_token",
+          "writable": true
+        },
+        {
+          "name": "organizer_token",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "cancel_listing",
+      "discriminator": [
+        41,
+        183,
+        50,
+        232,
+        230,
+        233,
+        157,
+        70
+      ],
+      "accounts": [
+        {
+          "name": "seller",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "listing"
+          ]
+        },
+        {
+          "name": "listing",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "create_event",
+      "discriminator": [
+        49,
+        219,
+        29,
+        203,
+        22,
+        98,
+        100,
+        87
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "event",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  118,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              },
+              {
+                "kind": "arg",
+                "path": "event_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "event_id",
+          "type": "u64"
+        },
+        {
+          "name": "face_price",
+          "type": "u64"
+        },
+        {
+          "name": "max_price_bps",
+          "type": "u16"
+        },
+        {
+          "name": "royalty_bps",
+          "type": "u16"
+        },
+        {
+          "name": "payment_mint",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "list_ticket",
+      "discriminator": [
+        11,
+        213,
+        240,
+        45,
+        246,
+        35,
+        44,
+        162
+      ],
+      "accounts": [
+        {
+          "name": "seller",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "event",
+          "relations": [
+            "ticket"
+          ]
+        },
+        {
+          "name": "ticket"
+        },
+        {
+          "name": "listing",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "ticket"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "price",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "mark_used",
+      "discriminator": [
+        37,
+        245,
+        77,
+        214,
+        14,
+        19,
+        195,
+        15
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "event"
+          ]
+        },
+        {
+          "name": "event",
+          "relations": [
+            "ticket"
+          ]
+        },
+        {
+          "name": "ticket",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "mint_ticket",
+      "discriminator": [
+        159,
+        167,
+        223,
+        60,
+        138,
+        6,
+        23,
+        29
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "event"
+          ]
+        },
+        {
+          "name": "event",
+          "writable": true
+        },
+        {
+          "name": "ticket",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  105,
+                  99,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "event"
+              },
+              {
+                "kind": "account",
+                "path": "event.ticket_count",
+                "account": "Event"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "owner",
+          "type": "pubkey"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Event",
+      "discriminator": [
+        125,
+        192,
+        125,
+        158,
+        9,
+        115,
+        152,
+        233
+      ]
+    },
+    {
+      "name": "Listing",
+      "discriminator": [
+        218,
+        32,
+        50,
+        73,
+        43,
+        134,
+        26,
+        58
+      ]
+    },
+    {
+      "name": "Ticket",
+      "discriminator": [
+        41,
+        228,
+        24,
+        165,
+        78,
+        90,
+        235,
+        200
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InvalidFacePrice",
+      "msg": "Nominal fiyat sifirdan buyuk olmali"
+    },
+    {
+      "code": 6001,
+      "name": "InvalidMaxPriceBps",
+      "msg": "Fiyat tavani en az 10000 bps (nominal fiyat) olmali"
+    },
+    {
+      "code": 6002,
+      "name": "InvalidRoyaltyBps",
+      "msg": "Telif orani 10000 bps'i gecemez"
+    },
+    {
+      "code": 6003,
+      "name": "Unauthorized",
+      "msg": "Bu islemi sadece yetkili hesap yapabilir"
+    },
+    {
+      "code": 6004,
+      "name": "TicketCountOverflow",
+      "msg": "Bilet sayaci tasti"
+    },
+    {
+      "code": 6005,
+      "name": "InvalidPrice",
+      "msg": "Fiyat sifirdan buyuk olmali"
+    },
+    {
+      "code": 6006,
+      "name": "PriceAboveCap",
+      "msg": "Fiyat izin verilen ust siniri asiyor"
+    },
+    {
+      "code": 6007,
+      "name": "NotTicketOwner",
+      "msg": "Bu bilet size ait degil"
+    },
+    {
+      "code": 6008,
+      "name": "TicketUsed",
+      "msg": "Kullanilmis bilet listelenemez"
+    },
+    {
+      "code": 6009,
+      "name": "EventMismatch",
+      "msg": "Bilet bu etkinlige ait degil"
+    },
+    {
+      "code": 6010,
+      "name": "CannotBuyOwnTicket",
+      "msg": "Kendi biletinizi satin alamazsiniz"
+    },
+    {
+      "code": 6011,
+      "name": "ListingStale",
+      "msg": "Listeleme gecersiz: bilet artik saticida degil"
+    },
+    {
+      "code": 6012,
+      "name": "MathOverflow",
+      "msg": "Hesaplama tasmasi"
+    }
+  ],
+  "types": [
+    {
+      "name": "Event",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "payment_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "event_id",
+            "type": "u64"
+          },
+          {
+            "name": "face_price",
+            "type": "u64"
+          },
+          {
+            "name": "max_price_bps",
+            "type": "u16"
+          },
+          {
+            "name": "royalty_bps",
+            "type": "u16"
+          },
+          {
+            "name": "ticket_count",
+            "type": "u32"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Listing",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "ticket",
+            "type": "pubkey"
+          },
+          {
+            "name": "seller",
+            "type": "pubkey"
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Ticket",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "event",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "index",
+            "type": "u32"
+          },
+          {
+            "name": "used",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ],
+  "constants": [
+    {
+      "name": "BPS_DENOMINATOR",
+      "type": "u16",
+      "value": "10000"
+    },
+    {
+      "name": "EVENT_SEED",
+      "type": "bytes",
+      "value": "[101, 118, 101, 110, 116]"
+    },
+    {
+      "name": "LISTING_SEED",
+      "type": "bytes",
+      "value": "[108, 105, 115, 116, 105, 110, 103]"
+    },
+    {
+      "name": "TICKET_SEED",
+      "type": "bytes",
+      "value": "[116, 105, 99, 107, 101, 116]"
+    }
+  ]
+}
