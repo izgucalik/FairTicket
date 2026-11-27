@@ -6,3 +6,7 @@ node_modules/
 .demo-keys.json
 fairticket.db
 proje.zip
+
+*.db-shm
+*.db-wal
+*.bak*
