@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FairTicket</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{--bg:#f6f5fb;--card:#fff;--tx:#1c1b29;--mut:#6b6a80;--bd:#e4e2f0;--ac:#6d4aff;--ok:#12a150;--bad:#d63a3a;--okbg:#e5f7ec;--badbg:#fdeaea}
+@media (prefers-color-scheme:dark){:root{--bg:#13121c;--card:#1d1c2b;--tx:#efeefa;--mut:#9d9bb5;--bd:#2f2d44;--ac:#9a82ff;--ok:#3ddc84;--bad:#ff6b6b;--okbg:#12301f;--badbg:#3a1a1a;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--bd);background:var(--card)}
+.logo{font-weight:800;font-size:20px}.logo span{color:var(--ac)}
+.who{display:flex;gap:6px;background:var(--bg);padding:4px;border-radius:12px;border:1px solid var(--bd)}
+.who button{border:0;background:none;color:var(--mut);padding:8px 12px;border-radius:9px;font:inherit;font-size:14px;cursor:pointer}
+.who button.on{background:var(--ac);color:#fff}
+nav{display:flex;gap:6px;padding:10px 20px;overflow-x:auto}
+nav button{border:1px solid var(--bd);background:var(--card);color:var(--tx);padding:9px 16px;border-radius:999px;font:inherit;font-size:14px;cursor:pointer}
+nav button.on{border-color:var(--ac);color:var(--ac);font-weight:600}
+main{max-width:860px;margin:0 auto;padding:8px 20px 60px}
+h2{font-size:22px;margin:18px 0 4px}.sub{color:var(--mut);margin:0 0 14px;font-size:14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:18px;margin-bottom:14px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.pill{display:inline-block;font-size:12px;padding:3px 10px;border-radius:999px;background:var(--bg);border:1px solid var(--bd);color:var(--mut);margin:4px 6px 0 0}
+.pill.ok{background:var(--okbg);color:var(--ok);border-color:transparent}.pill.bad{background:var(--badbg);color:var(--bad);border-color:transparent}
+.btn{border:0;background:var(--ac);color:#fff;padding:10px 18px;border-radius:10px;font:inherit;font-weight:600;cursor:pointer}
+.btn.ghost{background:none;border:1px solid var(--bd);color:var(--tx)}.btn:disabled{opacity:.45;cursor:not-allowed}
+input{font:inherit;padding:9px 12px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);width:100px}
+input.wide{width:100%;max-width:360px}
+.big{font-size:24px;font-weight:800}
+.msg{padding:12px 14px;border-radius:12px;margin-top:12px}.msg.ok{background:var(--okbg);color:var(--ok)}.msg.bad{background:var(--badbg);color:var(--bad)}
+.qrbox{background:#fff;padding:14px;border-radius:14px;display:inline-block}
+.gate{text-align:center}.res{font-size:26px;font-weight:800;margin-top:16px;padding:22px;border-radius:16px}
+.log{font:13px/1.7 ui-monospace,Consolas,monospace;color:var(--mut);max-height:220px;overflow:auto}.log a{color:var(--ac)}
+</style>
+</head>
+<body>
+<header><div class="logo">Fair<span>Ticket</span></div><div class="who" id="who"></div></header>
+<nav id="nav"></nav>
+<main id="app"></main>
+<script>
+const U = {ayse:"Ayşe · Satıcı", mehmet:"Mehmet · Alıcı", kapi:"Kapı · Turnike"};
+const TABS = {events:"Etkinlik", market:"Al / Sat", mine:"Biletim"};
+let me="ayse", tab="events", S={ready:false}, flash={}, gres="";
+
+async function load(){
+  try{ S = await (await fetch("/api/state")).json(); }catch(e){ S={ready:false}; }
+  render();
+  if(!S.ready) setTimeout(load, 2500);
+}
+async function call(path, body){
+  const r = await fetch(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body||{})});
+  const d = await r.json(); return {ok:r.ok, d};
+}
+const msg = k => flash[k] ? `<div class="msg ${flash[k].t}">${flash[k].x}</div>` : "";
+const logHtml = () => (S.log||[]).map(l=>`${l.t}  ${l.text}${l.url?` · <a href="${l.url}" target="_blank" rel="noopener">explorer</a>`:""}`).join("<br>") || "Kayıt yok.";
+
+function render(){
+  document.getElementById("who").innerHTML = Object.entries(U).map(([k,v])=>`<button class="${k===me?"on":""}" data-u="${k}">${v}</button>`).join("");
+  document.getElementById("nav").innerHTML = me==="kapi" ? `<button data-reset>Demoyu sıfırla</button>` :
+    Object.entries(TABS).map(([k,v])=>`<button class="${k===tab?"on":""}" data-t="${k}">${v}</button>`).join("");
+  const a = document.getElementById("app");
+  if(!S.ready){ a.innerHTML = `<div class="card"><b>Zincire bağlanılıyor…</b><p class="sub" style="margin:6px 0 0">Etkinlik ve bilet Devnet’te hazırlanıyor, birkaç saniye sürer.</p></div>`; return; }
+  a.innerHTML = me==="kapi" ? gate() : ({events,market,mine}[tab])();
+  if(me!=="kapi" && tab==="mine") drawQR();
+}
+const bal = () => `Bakiye: <b>${S.balances[me]??"-"} USDC</b> (sahte, Devnet)`;
+
+function events(){ return `<h2>Etkinlikler</h2><p class="sub">Kurallar akıllı kontratta, kimse değiştiremez.</p>
+<div class="card"><div class="row"><div><div class="big">FairTicket Demo Etkinliği</div>
+<span class="pill">Nominal 50 USDC</span><span class="pill ok">Tavan 60 USDC (%120)</span><span class="pill">Telif %10</span></div>
+<button class="btn" data-go="market">Biletlere git</button></div></div>
+<div class="card"><b>Neden FairTicket?</b><p class="sub" style="margin:6px 0 0">Karaborsa yok: fiyat tavanı zincirde zorunlu. Her ikinci el satıştan organizatöre otomatik telif gider. Kopya QR işe yaramaz: bilet bir kez okutulunca zincirde “kullanıldı” olur.</p></div>`; }
+
+function market(){
+  const t=S.ticket; let h=`<h2>Al / Sat</h2><p class="sub">${me==="kapi"?"":bal()}</p>`;
+  if(t.used) return h+`<div class="card">Bu bilet kullanıldı.</div>`;
+  if(t.owner===me && !t.price) h+=`<div class="card"><b>Biletini sat</b><div class="row" style="margin-top:12px"><div>Koltuk A-12</div>
+    <div><input type="number" id="price" value="70" min="1"> USDC <button class="btn" data-list>İlana koy</button></div></div>${msg("list")}</div>`;
+  else h+=`<div class="card"><b>Biletin yok ya da ilanda.</b>${msg("list")}</div>`;
+  h+=`<div class="card"><b>Satıştaki biletler</b>`;
+  if(t.price) h+=`<div class="row" style="margin-top:12px"><div>Koltuk A-12<br><span class="pill">Satıcı: Ayşe</span><span class="pill ok">${t.price} USDC</span></div>
+    <button class="btn" data-buy ${me!=="mehmet"?"disabled":""}>${me==="mehmet"?"Satın al":"Alıcı olarak gir"}</button></div>`;
+  else h+=`<p class="sub" style="margin:8px 0 0">Şu an ilan yok.</p>`;
+  return h+msg("buy")+`</div>`;
+}
+function mine(){
+  const t=S.ticket; let h=`<h2>Biletim</h2><p class="sub">${bal()}</p>`;
+  if(t.owner!==me) return h+`<div class="card">Bu hesapta bilet yok.</div>`;
+  return h+`<div class="card"><div class="row"><div><div class="big">FairTicket Demo Etkinliği</div><div class="sub" style="margin:0">Koltuk A-12</div>
+  <span class="pill ${t.used?"bad":"ok"}">${t.used?"Kullanıldı":"Geçerli"}</span>${t.price?'<span class="pill">İlanda</span>':""}</div>
+  <div class="qrbox"><div id="qr"></div></div></div></div>`;
+}
+function drawQR(){ const el=document.getElementById("qr"); if(el) new QRCode(el,{text:"fairticket:"+S.eventPda,width:150,height:150}); }
+
+function gate(){
+  return `<div class="card gate"><h2 style="margin-top:0">Turnike</h2><p class="sub">QR’ı okut, bilet zincirde kontrol edilir.</p>
+  <input class="wide" id="scan" placeholder="fairticket:..."> <button class="btn" data-scan>Okut</button>
+  <div style="margin-top:12px"><button class="btn ghost" data-quick>Biletin QR’ını okut</button></div>${gres}</div>
+  <div class="card"><b>Zincir günlüğü</b><div class="log">${logHtml()}</div></div>`;
+}
+async function scan(qr){
+  gres = `<div class="res">Zincire soruluyor…</div>`; render();
+  const {ok,d} = await call("/api/mark-used",{qr});
+  gres = ok ? `<div class="res" style="background:var(--okbg);color:var(--ok)">✓ Geçerli, giriş yapabilir</div>`
+            : `<div class="res" style="background:var(--badbg);color:var(--bad)">✕ ${d.error==="Hata"?d.message:"Bu bilet zaten kullanıldı"}<div style="font-size:13px;font-weight:400">Zincir: ${d.error}</div></div>`;
+  await load();
+}
+
+document.addEventListener("click", async e=>{
+  const d=e.target.closest("button"); if(!d) return; const k=d.dataset; d.blur();
+  if(k.u){ me=k.u; flash={}; gres=""; if(me!=="kapi" && !TABS[tab]) tab="events"; await load(); }
+  else if(k.t){ tab=k.t; render(); }
+  else if(k.go){ tab=k.go; render(); }
+  else if(k.reset!==undefined){ await call("/api/reset"); gres=""; flash={}; S={ready:false}; load(); }
+  else if(k.list!==undefined){
+    const p=document.getElementById("price").value; d.disabled=true; d.textContent="Zincirde…";
+    const {ok,d:r}=await call("/api/list",{price:p});
+    flash.list = ok ? {t:"ok",x:`İlana konuldu: ${p} USDC.`} : {t:"bad",x:`Zincir reddetti: <b>${r.error}</b><br><small>${r.message}</small>`};
+    await load();
+  }
+  else if(k.buy!==undefined){
+    d.disabled=true; d.textContent="Zincirde…";
+    const {ok,d:r}=await call("/api/buy");
+    flash.buy = ok ? {t:"ok",x:`Satın alındı. Satıcıya ${r.price*0.9} USDC, organizatöre %10 telif (${r.price*0.1} USDC) gitti. “Biletim”e bak.`} : {t:"bad",x:`Zincir reddetti: <b>${r.error}</b>`};
+    await load();
+  }
+  else if(k.scan!==undefined) scan(document.getElementById("scan").value.trim());
+  else if(k.quick!==undefined) scan("fairticket:"+S.eventPda);
+});
+load();
+</script>
+</body>
+</html>
