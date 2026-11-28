@@ -2,7 +2,7 @@
 
 FairTicket is a Solana-based event ticketing and secondary marketplace protocol that enforces resale price caps, automatic organizer royalties, and single-use dynamic QR entry verification for event organizers and attendees.
 
-**Demo Video (3 min):** [YOUTUBE_LINKINI_BURAYA_YAPISTIR]  
+**Demo Video (3 min):** https://youtu.be/E3biFk0aIzk 
 **Solana Devnet Program ID:** `6xrY8GHUgWPZrjkRdNGTrD5Cp55icUN3L4Fot7MLiujs`  
 **Solana Explorer:** https://explorer.solana.com/address/6xrY8GHUgWPZrjkRdNGTrD5Cp55icUN3L4Fot7MLiujs?cluster=devnet
 
